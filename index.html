@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="icon" type="image/png" href="favicon.png" />
+
+        <title>Interactive Card Form :: Alpine + Tailwind</title>
+
+        <link rel="stylesheet" href="./src/main.css">
+        <script defer type="module" src="./src/index.js"></script>
+    </head>
+
+    <body class="flex flex-col text-lg uppercase">
+        <main class="flex flex-col sm:flex-row sm:items-center sm:justify-between" x-data="ccform">
+            <h1 class="absolute -left-full invisible">Interactive credit card form</h1>
+            <!-- Card preview -->
+            <div class="flex flex-col sm:justify-center px-4 sm:px-5 md:px-16 lg:px-0 pt-8 mb-8 sm:mb-0 sm:h-screen text-white bg-main-mobile sm:bg-main-desktop bg-cover">
+                <div class="flex flex-col order-2 relative z-10 lg:left-[10vw] -mt-16 -mb-12 sm:mt-0 sm:mb-9 md:-mr-[10vw] md:order-1 p-4 lg:p-8 w-[284px] h-[156px] lg:w-[446px] lg:h-[244px] bg-card-front bg-cover text-neutral-600">
+                    <img class="w-14 lg:w-20" src="/card-logo.svg" alt="Card logo" width="70">
+                    <div class="mt-auto mb-2 lg:mb-6 tracking-[2.5px] lg:text-3xl" x-text="formData.cardNumber || '0000 0000 0000 0000'"></div>
+                    <div class="flex justify-between text-[.6rem] lg:text-sm sm:text-sm tracking-widest">
+                        <div x-text="formData.name || 'Jane Appleseed'"></div>
+                        <div><span x-text="formData.expiryMonth || '00'"></span>/<span x-text="formData.expiryYear || '00'"></span></div>
+                    </div>
+                </div>
+                <div class="flex order-1 sm:order-2 relative lg:left-[15vw] items-center justify-end p-9 lg:p-14 ml-auto -mb-1 w-[284px] h-[156px] lg:w-[446px] lg:h-[244px] bg-card-back bg-cover text-neutral-600">
+                    <span class="text-[.6rem] md:text-sm tracking-widest -mt-0.5" x-text="formData.cvc || '000'"></span>
+                </div>
+            </div>
+            <div class="pt-16 sm:px-6 lg:px-0 mx-auto">
+                <!-- Card form -->
+                <form class="max-w-sm mx-6 sm:mx-auto lg:ml-[16vw]" x-show="!success">
+                    <div class="mb-5">
+                        <label :class="styles.label" for="name">Cardholder Name</label>
+                        <input id="name" :class="validation.checked && !formData.name.length ? `${styles.input} border-red` : `${styles.input} border-neutral-600`" type="text" x-model="formData.name" x-ref="nameField" placeholder="e.g. Jane Appleseed" required />
+                        <p x-show="validation.checked && !formData.name.length" :class="styles.error" x-text="validation.errorRequired"></p>
+                    </div>
+                    <div class="mb-5">
+                        <label :class="styles.label" for="cardNumber">Card Number</label>
+                        <input id="cardNumber" :class="validation.checked && formData.cardNumber.length < 19 ? `${styles.input} border-red` : `${styles.input} border-neutral-600`" type="text" x-model="formData.cardNumber" x-mask="9999 9999 9999 9999" data-validate-length="19" placeholder="e.g. 1234 5678 9123 0000" required />
+                        <p x-show="validation.checked && !formData.cardNumber.length" :class="styles.error" x-text="validation.errorRequired"></p>
+                        <p x-show="validation.checked && formData.cardNumber.length > 0 && formData.cardNumber.length < 19" :class="styles.error">Wrong format, 16 numbers expected</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label :class="styles.label">Exp. Date (MM/YY)</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <input type="text" :class="validation.checked && (!formData.expiryMonth.length || parseInt(formData.expiryMonth) > 12) ? `${styles.input} border-red` : `${styles.input} border-neutral-600`" x-model="formData.expiryMonth" x-mask="99" data-validate-length="2" placeholder="MM" required />
+                                <input type="text" :class="validation.checked && (!formData.expiryYear.length || parseInt(`20${formData.expiryYear}`) < validation.year) ? `${styles.input} border-red` : `${styles.input} border-neutral-600`" x-model="formData.expiryYear" x-mask="99" data-validate-length="2" placeholder="YY" required />
+                            </div>
+                            <p x-show="validation.checked && (!formData.expiryMonth.length || !formData.expiryYear.length)" :class="styles.error" x-text="validation.errorRequired"></p>
+                            <p x-show="validation.checked && (!formData.expiryMonth.length || parseInt(formData.expiryMonth) > 12)" :class="styles.error">Must be valid month</p>
+                            <p x-show="validation.checked && parseInt(`20${formData.expiryYear}`) < validation.year" :class="styles.error">Must be valid year</p>
+                        </div>
+                        <div>
+                            <label :class="styles.label" for="cvc">CVC</label>
+                            <input type="text" :class="validation.checked && formData.cvc.length < 3 ? `${styles.input} border-red` : `${styles.input} border-neutral-600`" x-model="formData.cvc" x-mask="999" data-validate-length="3" placeholder="e.g. 123" required />
+                            <p x-show="validation.checked && !formData.cvc.length" :class="styles.error" x-text="validation.errorRequired"></p>
+                            <p x-show="validation.checked && formData.cvc.length > 0 && formData.cvc.length < 3" :class="styles.error">3 numbers expected</p>
+                        </div>
+                    </div>
+                    <button type="button" :class="styles.button" @click="submitForm($refs.form)">Confirm</button>
+                </form>
+                <!-- Success message -->
+                <div class="flex flex-col items-center w-full max-w-sm sm:mx-auto lg:ml-[8vw]" x-show="success" x-transition>
+                    <img src="/icon-complete.svg" alt="Checkmark" width="70">
+                    <h2 class="mt-10 mb-6 text-3xl tracking-[.2rem]">Thank you!</h2>
+                    <p class="normal-case text-neutral-300 mb-4">We've added your card details</p>
+                    <button type="button" :class="styles.button" @click="console.log('Success!')">Continue</button>
+                </div>
+            </div>
+        </main>
+    </body>
+</html>
